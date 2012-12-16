@@ -1,0 +1,375 @@
+#include <iostream>
+#include <cstdlib>
+#include <string>
+#include <time.h>
+#include "pokazivaci.h"
+
+using namespace std;
+
+
+void zadtak_prvi(int **cetvorke, int N) {
+    for (int i = 0; i < N; i++) {
+        cetvorke[i][0] = rand() % 401 + 100;
+        cetvorke[i][1] = rand() % 401 + 100;
+        cetvorke[i][2] = rand() % 6 + 1;
+        cetvorke[i][3] = rand() % 4 + 1;
+   
+        if ((cetvorke[i][2] == 1 || cetvorke[i][2] == 3) && cetvorke[i][3] == 4) {
+        
+            i--; 
+        }
+    
+        else if (cetvorke[i][2] == 6 && cetvorke[i][3] == 2) {
+            i--;
+        }
+    }
+
+    cout << "Pregled generiranih cetvorki." << endl;
+    for (int i = 0; i < N; i++) {
+        cout << i + 1 << ". " << "[" << cetvorke[i][0] << ", "\
+         << cetvorke[i][1] << ", " << cetvorke[i][2]\
+         << ", " << cetvorke[i][3] << "] ";
+        if (cetvorke[i][2] == 1 && cetvorke[i][3] == 2) {
+            cout << "(kandidat za opciju 4!)";
+        }
+        else if (cetvorke[i][2] == 4 && cetvorke[i][3] == 1) {
+            cout << "(kandidat za opciju 4!)";
+        }
+        cout << endl;
+    }
+
+}
+
+
+void sortiraj(int **cetvorke, queue *q, int size) {
+
+    klijent *polje = new klijent[size];
+    for (int i = 0; i < size; i++) {
+        polje[i] = FrontQ(q);
+        DeQueueQ(q);
+    }
+    
+    
+    klijent pom;
+    int max;
+    for (int i = size; i > 1; i--) {
+        max = 0;
+        for (int j = 1; j < i; j++) {
+    
+            if (cetvorke[polje[j].i][2] >= cetvorke[polje[max].i][2]) {
+                max = j;
+            }
+        }
+        pom = polje[max];
+        polje[max] = polje[i-1];
+        polje[i-1] = pom;
+    }
+
+   
+    for (int i = 0; i < size; i++) {
+        EnQueueQ(polje[i], q);
+    }
+}
+
+
+void zadatak_drugi(int **cetvorke, klijent *ljudi, queue red, int N) {
+    cout << "Unos preostalih podataka za klijente." << endl;
+    for (int i = 0; i < N; i++) {
+        cout << "Ime " << i+1 << ". klijenta: "; cin >> ljudi[i].ime;
+        cout << "Datum rodjenja: "; cin >> ljudi[i].datum;
+        cout << "Stanje na tekucem racunu: "; cin >> ljudi[i].tek;
+        cout << "Stanje na deviznom racunu: "; cin >> ljudi[i].dev; 
+        ljudi[i].i = i; 
+    }
+
+
+    cout << "Podaci pohranjeni; zapocinje rad banke." << endl;
+
+    
+    queue aktivni; InitQ(&aktivni);
+    klijent pom1, pom2; 
+    int ukupno_u_redu = 0; 
+    int zadnji_dolazak = 0; 
+    int pocetak_transakcije = 0; 
+
+    int j = 0;
+
+
+    for (int vrijeme = 0; vrijeme < 100000; vrijeme++) {
+
+        if ((j < N) && vrijeme == zadnji_dolazak + cetvorke[j][0]) {
+            cout << "U banku ulazi " << ljudi[j].ime << " i ";
+            zadnji_dolazak = vrijeme;
+
+            if (IsEmptyQ(&aktivni)) {
+                cout << "ide izravno na salter." << endl;
+                pocetak_transakcije = vrijeme;
+                EnQueueQ(ljudi[j], &aktivni);
+            }
+         
+            else {
+                cout << "staje u red." << endl;
+                EnQueueQ(ljudi[j], &red);
+                ukupno_u_redu++;
+          
+                sortiraj(cetvorke, &red, ukupno_u_redu);
+              
+            }
+            if (ljudi[j].dev * 6 > 10000) {
+                cout << "Taj klijent ima vise od 10000 kn u dolarima." << endl;
+            }
+            j = j +1;
+        }
+
+        if (IsEmptyQ(&aktivni) == false) {
+       
+          
+            if (vrijeme == pocetak_transakcije + cetvorke[FrontQ(&aktivni).i][1]) {
+                cout << FrontQ(&aktivni).ime << " zavrsava." << endl;
+                DeQueueQ(&aktivni);
+            }
+        }
+     
+        else { 
+            
+            if (IsEmptyQ(&red) == false) {
+                cout << FrontQ(&red).ime << " ide na salter." << endl;
+                EnQueueQ(FrontQ(&red), &aktivni);
+                DeQueueQ(&red);
+                pocetak_transakcije = vrijeme;
+                ukupno_u_redu--;
+            }
+        }
+        
+
+    }
+
+}
+
+void zadatak_treci(int **cetvorke, klijent ljudi[], int n) {
+    queue red1, red2, tmp1, tmp2;
+    InitQ(&red1);
+    InitQ(&red2);
+    InitQ(&tmp2);
+    InitQ(&tmp1);
+    klijent pom;
+
+  
+    for (int i = 0; i < n; i++) {
+        EnQueueQ(ljudi[i], &red1);
+        EnQueueQ(ljudi[i], &tmp1);
+       
+        
+      
+    }
+    sortiraj(cetvorke, &red1, n);
+    sortiraj(cetvorke, &tmp1, n);
+    
+    cout << "Prije premjestanja, red izgleda ovako: " << endl;
+    for (int i = 0; i < n; i++) {
+        pom = FrontQ(&tmp1); DeQueueQ(&tmp1);
+        cout << pom.ime << ", prioritet: " << cetvorke[pom.i][2] << ", transakcija: " << cetvorke[pom.i][3] << endl;
+    }
+
+  
+    for (int i = 0; i < n; i++) {
+        pom = FrontQ(&red1);
+        DeQueueQ(&red1);
+        if (cetvorke[pom.i][3] == 3) {
+           
+            EnQueueQ(pom, &red2);
+        }
+        else {
+            
+            EnQueueQ(pom, &red1);
+        }
+    }
+
+    cout << "Nakon premjestanja, red izgleda ovako: " << endl;
+    while (IsEmptyQ(&red1) == false) {
+        pom = FrontQ(&red1); DeQueueQ(&red1);
+        cout << pom.ime << ", prioritet: " << cetvorke[pom.i][2] << ", transakcija: " << cetvorke[pom.i][3] << endl;
+    }   
+
+    cout << "Ljudi u brzom redu: " << endl;
+    while (IsEmptyQ(&red2) == false) {
+        pom = FrontQ(&red2); DeQueueQ(&red2);
+        cout << pom.ime << ", prioritet: " << cetvorke[pom.i][2] << ", transakcija: " << cetvorke[pom.i][3] << endl;
+    }   
+
+    cout << "Premjestanje gotovo." << endl;
+
+
+}   
+
+void zadatak_cetvrti(int **cetvorke, klijent ljudi[], int n) {
+    queue red1, red2, tmp1, tmp2;
+    InitQ(&red1);
+    InitQ(&red2);
+    InitQ(&tmp2);
+    InitQ(&tmp1);
+    klijent pom;
+
+    for (int i = 0; i < n; i++) {
+        EnQueueQ(ljudi[i], &red1);
+        EnQueueQ(ljudi[i], &tmp1);
+    }
+    sortiraj(cetvorke, &tmp1, n);
+    sortiraj(cetvorke, &red1, n);
+
+    cout << "Prije brisanja, red izgleda ovako: " << endl;
+    for (int i = 0; i < n; i++) {
+        pom = FrontQ(&tmp1); DeQueueQ(&tmp1);
+        cout << pom.ime << ", prioritet: " << cetvorke[pom.i][2] << ", transakcija: " << cetvorke[pom.i][3] << ", stanje na tekucem: " << pom.tek << endl;
+    }
+
+
+    for (int i = 0; i < n; i++) {
+        pom = FrontQ(&red1); DeQueueQ(&red1);
+    
+        if (pom.tek <= 99 && cetvorke[pom.i][2] == 4 \
+            && pom.datum > "19821212" && cetvorke[pom.i][3] == 1) 
+        {
+            cout << pom.ime << " obrisan." << endl;
+            continue;
+      
+        }
+        if (pom.tek > 5000 && cetvorke[pom.i][2] == 1 \
+            && cetvorke[pom.i][3] == 2) 
+        {  
+            cout << pom.ime << " obrisan." << endl;
+            continue;
+        }
+      
+        EnQueueQ(pom, &red1);
+    }
+
+    cout << "Nakon brisanja, red izgleda ovako: " << endl;
+  
+    while (IsEmptyQ(&red1) == false) {
+        pom = FrontQ(&red1); DeQueueQ(&red1);
+        cout << pom.ime << endl;
+    }
+    
+}
+
+
+void rekurzija(queue *glavni, queue *novi, int ukupno, int brojac) {
+    if (brojac == 0) {
+        return;
+    }
+
+    klijent pom = FrontQ(glavni);
+    DeQueueQ(glavni);
+  
+    if (brojac > ukupno * 0.3) {
+        EnQueueQ(pom, glavni);
+    }
+
+    rekurzija(glavni, novi, ukupno, brojac-1);
+
+    
+    if (brojac <= ukupno * 0.3) {
+        EnQueueQ(pom, novi);
+    }
+}
+
+
+void zadatak_peti(int **cetvorke, klijent ljudi[], int n) {
+    queue red1, red2, tmp1, tmp2;
+    InitQ(&red1);
+    InitQ(&red2);
+    InitQ(&tmp2);
+    InitQ(&tmp1);
+    klijent pom;
+
+
+    for (int i = 0; i < n; i++) {
+        EnQueueQ(ljudi[i], &red1);
+        EnQueueQ(ljudi[i], &tmp1);
+
+    }
+    sortiraj(cetvorke, &tmp1, n);
+    sortiraj(cetvorke, &red1, n);
+
+    cout << "Prije premjestanja, red izgleda ovako: " << endl;
+    for (int i = 0; i < n; i++) {
+        pom = FrontQ(&tmp1); DeQueueQ(&tmp1);
+        cout << pom.ime << ", prioritet: " << cetvorke[pom.i][2] << ", transakcija: " << cetvorke[pom.i][3] << ", stanje na tekucem: " << pom.tek << endl;
+    }
+
+ 
+    rekurzija(&red1, &red2, n, n);
+ 
+
+    cout << "Nakon premjestanja, red izgleda ovako: " << endl;
+    while (IsEmptyQ(&red1) == false) {
+        pom = FrontQ(&red1); DeQueueQ(&red1);
+        cout << pom.ime << endl;
+    }
+    cout << "Nakon premjestanja, u novom redu su: " << endl;
+    while (IsEmptyQ(&red2) == false) {
+        pom = FrontQ(&red2); DeQueueQ(&red2);
+        cout << pom.ime << endl;
+    }    
+
+}
+
+int main() {
+
+    int N;
+    cout << "N: ";
+    cin >> N;
+
+    srand(time(0));
+
+ 
+    int **cetvorke;
+    cetvorke = new int*[N];
+    for (int i = 0; i < N; i++) {
+        cetvorke[i] = new int[4];
+    }
+
+
+    queue banka;
+    InitQ(&banka);
+    int izbor;
+    
+    klijent *ljudi = new klijent[N];
+
+  
+    while(1) {
+        cout << "~~~~~~~~Izbornik~~~~~~~~" << endl;
+        cout << "1. Generiranje cetvorki." << endl;
+        cout << "2. Simuliranje rada banka." << endl;
+        cout << "3. Premjestanje u red brzih transakcija. " << endl;
+        cout << "4. Brisanje klijenata." << endl;
+        cout << "5. Otvaranje novog reda." << endl;
+        cout << "9. Kraj programa. " << endl;
+
+        cout << "Izbor: ";
+        cin >> izbor;
+        
+        if (izbor == 1) {
+            cout << "Generiranje cetvorki." << endl;
+            zadtak_prvi(cetvorke, N);        
+        }
+        else if (izbor == 2) {
+            zadatak_drugi(cetvorke, ljudi, banka, N);
+        }
+        else if (izbor == 3) {
+            zadatak_treci(cetvorke, ljudi, N);
+        }
+        else if (izbor == 4) {
+            zadatak_cetvrti(cetvorke, ljudi, N);
+        }
+        else if (izbor == 5) {
+            zadatak_peti(cetvorke, ljudi, N);
+        }
+        else if (izbor == 9) {
+            break;
+        }
+    }
+
+    return 0;
+}
